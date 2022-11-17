@@ -3,50 +3,58 @@ const mysql = require('mysql2');
 const inquirer = require('inquirer');
 const PORT = process.env.PORT || 3001;
 const app = express();
+const util = require("util");
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-
-inquirer 
-    .prompt([
-        {
-            type: 'list',
-            message: 'Select a department',
-            choices: ['Sales', 'Engineering', 'Legal', 'Finance' ]
-        },
-    ]);
-
 const db = mysql.createConnection(
     {
       host: 'localhost',
-      // MySQL username,
       user: 'root',
-      // TODO: Add MySQL password here
       password: '',
       database: 'companyDB'
     },
     console.log(`Connected to the companyDB database.`)
   );
+const query = util.promisify(db.query).bind(db);
 
-  app.get('/departments', (req, res) => {
-    const sql = `SELECT * FROM departments `;
+function startInq() {
+inquirer 
+    .prompt([
+        {
+            name: 'selection',
+            type: 'list',
+            message: 'What would you like to do?',
+            choices: ['View all employees', 'View all roles', 'View all Departments', 'Quit' ]
+        },
+    ])
+    .then((answer) => {
+        const {selection} = answer;
+        console.log(selection);
+        if (selection === "View all employees" ) {
+             query('SELECT * FROM employees').then(data => {
+                console.log(data);
+                startInq();
+             });
+            //  , function (err, results) {
+              
+        } else if (selection === "View all roles") {
+            query('SELECT * FROM roles').then(data => {
+                console.log(data);
+                startInq();
+             });
+              
+        } else if (selection === "View all Departments") {
+            query('SELECT * FROM department').then(data => {
+                console.log(data);
+                startInq();
+             });
+        } else if (selection === "Quit") {
+            query('EXIT').then(data => {
+                
+             });
+        };
     
-    db.query(sql, (err, rows) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-         return;
-      }
-      res.json({
-        message: 'success',
-        data: rows
-      });
     });
-  });
-  app.use((req, res) => {
-    res.status(404).end();
-  });
-  
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-  
+};
+startInq();
